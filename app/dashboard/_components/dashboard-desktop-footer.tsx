@@ -18,7 +18,7 @@ export function DashboardDesktopFooter() {
         <div className="text-center text-muted-foreground">
           <div className="mb-4 flex flex-wrap justify-center gap-4">
             <a
-              href="https://wa.me/201061329025"
+              href="https://wa.me/201015937170"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block rounded-lg border-2 border-brand/20 bg-brand/10 px-4 py-2 transition-colors hover:bg-brand/20"

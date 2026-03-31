@@ -26,7 +26,7 @@ const playpenSansArabic = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "منصة أ/محمود حمدي",
+  title: "منصة المحيط",
   description: "منصة تعليمية متكاملة",
   icons: {
     icon: [{ url: "/favicon.ico", type: "image/x-icon" }],

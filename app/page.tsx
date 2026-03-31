@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/navbar";
 import { ScrollProgress } from "@/components/scroll-progress";
+import { HomeSocialFabs } from "@/components/home-social-fabs";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db"; // Import db client
 import { useSession } from "next-auth/react";
@@ -111,6 +112,7 @@ export default function HomePage() {
     <div className="h-full w-full bg-background">
         <Navbar />
         <ScrollProgress />
+        <HomeSocialFabs />
       {/* Hero Section */}
       <section id="hero-section" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 md:pt-0 bg-gradient-to-t from-brand/25 via-brand/10 to-transparent">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-8 items-center">
@@ -241,10 +243,10 @@ export default function HomePage() {
             className="text-center mt-0 md:mt-0 order-2 md:order-1"
           >
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            <span className="text-brand">أ/محمود حمدي</span>
+            <span className="text-brand">منصة المحيط</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8">
-              طريقك للنجاح و التفوق
+              أ/ محمود حمدي
             </p>
             <Button size="lg" asChild className="bg-brand hover:bg-brand/90 text-white">
               <Link href="/sign-up">

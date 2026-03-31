@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const WHATSAPP_URL = "https://wa.me/201061329025";
+const WHATSAPP_URL = "https://wa.me/201015937170";
 
 export function SupportFab() {
   const pathname = usePathname();

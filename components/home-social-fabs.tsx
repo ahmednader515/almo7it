@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 const FACEBOOK_URL =
-  "https://www.facebook.com/bekaso150?rdid=OUQZ1DeJlImBVz0D&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BDZx6a8KG%2F#";
+  "https://www.facebook.com/profile.php?id=100071620771234&rdid=R4MQLNcEMLMpjSRZ&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1J3xX2iexp%2F#";
 const YOUTUBE_URL = "https://www.youtube.com/channel/UC40vCWrvO5j61aKpPoj6qKQ";
 
 // Size knobs

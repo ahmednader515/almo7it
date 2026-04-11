@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, CheckCircle, XCircle, Award } from "lucide-react";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface QuizAnswer {
     questionId: string;
@@ -34,6 +36,7 @@ interface QuizResult {
 interface Quiz {
     id: string;
     title: string;
+    kind?: AssessmentKind;
     maxAttempts: number;
     currentAttempt: number;
     previousAttempts: number;
@@ -196,13 +199,15 @@ export default function QuizResultPage({
     const correctAnswers = result.answers.filter(a => a.isCorrect).length;
     const incorrectAnswers = result.answers.filter(a => !a.isCorrect).length;
 
+    const ui = assessmentUi(quiz?.kind ?? "QUIZ");
+
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto space-y-6">
                     {/* Header */}
                     <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold">نتيجة الاختبار</h1>
+                        <h1 className="text-2xl font-bold">{ui.resultTitle}</h1>
                     </div>
 
                     {/* Summary Card */}
@@ -312,7 +317,7 @@ export default function QuizResultPage({
                                 onClick={handleTryAgain}
                                 className="bg-primary hover:bg-primary/90"
                             >
-                                إعادة الاختبار
+                                {ui.retake}
                             </Button>
                         ) : (
                             <Button

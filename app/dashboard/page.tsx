@@ -9,10 +9,11 @@ import { BookOpen, Play, Clock, Trophy, Wallet, TrendingUp, BookOpen as BookOpen
 import Link from "next/link";
 import Image from "next/image";
 import { Course, Purchase, Chapter } from "@prisma/client";
+import { formatCourseAssessmentCounts } from "@/lib/assessment-labels";
 
 type CourseWithProgress = Course & {
   chapters: { id: string }[];
-  quizzes: { id: string }[];
+  quizzes: { id: string; kind: "QUIZ" | "HOMEWORK" }[];
   purchases: Purchase[];
   progress: number;
 }
@@ -186,6 +187,7 @@ const CoursesPage = async () => {
         },
         select: {
           id: true,
+          kind: true,
         }
       },
       purchases: {
@@ -385,7 +387,7 @@ const CoursesPage = async () => {
                 <Trophy className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">الاختبارات المكتملة</p>
+                <p className="text-sm text-muted-foreground">الاختبارات والواجبات المكتملة</p>
                 <p className="text-2xl font-bold">{studentStats.completedQuizzes}</p>
               </div>
             </div>
@@ -435,9 +437,7 @@ const CoursesPage = async () => {
                     {course.quizzes.length > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
-                        <span>
-                          {course.quizzes.length} {course.quizzes.length === 1 ? "اختبار" : "اختبارات"}
-                        </span>
+                        <span>{formatCourseAssessmentCounts(course.quizzes)}</span>
                       </div>
                     )}
                   </div>

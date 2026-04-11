@@ -12,6 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Search, Eye, Award, TrendingUp, Users, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Course {
   id: string;
@@ -22,6 +24,7 @@ interface Quiz {
   id: string;
   title: string;
   courseId: string;
+  kind?: AssessmentKind;
   course: {
     title: string;
   };
@@ -38,6 +41,7 @@ interface QuizResult {
   quizId: string;
   quiz: {
     title: string;
+    kind?: AssessmentKind;
     course: {
       id: string;
       title: string;
@@ -74,12 +78,18 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
   const [selectedQuiz, setSelectedQuiz] = useState<string>("");
   const [selectedResult, setSelectedResult] = useState<QuizResult | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  /** Filter progress table and stats: all assessments, quizzes only, or homework only */
+  const [kindFilter, setKindFilter] = useState<"all" | "QUIZ" | "HOMEWORK">("all");
 
   useEffect(() => {
     fetchCourses();
     fetchQuizzes();
     fetchQuizResults();
   }, []);
+
+  useEffect(() => {
+    setSelectedQuiz("all");
+  }, [kindFilter]);
 
   const fetchCourses = async () => {
     try {
@@ -124,7 +134,12 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
     setIsDialogOpen(true);
   };
 
-  const filteredResults = quizResults.filter((result) => {
+  const kindScopedResults = quizResults.filter((result) => {
+    if (kindFilter === "all") return true;
+    return (result.quiz.kind ?? "QUIZ") === kindFilter;
+  });
+
+  const filteredResults = kindScopedResults.filter((result) => {
     const matchesSearch =
       result.user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,6 +149,11 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
     const matchesQuiz = !selectedQuiz || selectedQuiz === "all" || result.quizId === selectedQuiz;
 
     return matchesSearch && matchesCourse && matchesQuiz;
+  });
+
+  const quizzesForSelect = quizzes.filter((q) => {
+    if (kindFilter === "all") return true;
+    return (q.kind ?? "QUIZ") === kindFilter;
   });
 
   const getGradeColor = (percentage: number) => {
@@ -172,6 +192,39 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
         </div>
       )}
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <span className="text-sm font-medium text-muted-foreground">عرض:</span>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={kindFilter === "all" ? "default" : "outline"}
+            className={kindFilter === "all" ? "bg-brand hover:bg-brand/90" : ""}
+            onClick={() => setKindFilter("all")}
+          >
+            الكل
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={kindFilter === "QUIZ" ? "default" : "outline"}
+            className={kindFilter === "QUIZ" ? "bg-brand hover:bg-brand/90" : ""}
+            onClick={() => setKindFilter("QUIZ")}
+          >
+            الاختبارات فقط
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={kindFilter === "HOMEWORK" ? "default" : "outline"}
+            className={kindFilter === "HOMEWORK" ? "bg-brand hover:bg-brand/90" : ""}
+            onClick={() => setKindFilter("HOMEWORK")}
+          >
+            الواجبات فقط
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-6">
@@ -179,7 +232,7 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               <Users className="h-8 w-8 text-blue-600" />
               <div className="flex-1 text-right">
                 <p className="text-sm font-medium text-muted-foreground">إجمالي الطلاب</p>
-                <p className="text-2xl font-bold">{new Set(quizResults.map((r) => r.studentId)).size}</p>
+                <p className="text-2xl font-bold">{new Set(filteredResults.map((r) => r.studentId)).size}</p>
               </div>
             </div>
           </CardContent>
@@ -191,8 +244,8 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               <div className="flex-1 text-right">
                 <p className="text-sm font-medium text-muted-foreground">متوسط الدرجات</p>
                 <p className="text-2xl font-bold">
-                  {quizResults.length > 0
-                    ? Math.round(quizResults.reduce((sum, r) => sum + r.percentage, 0) / quizResults.length)
+                  {filteredResults.length > 0
+                    ? Math.round(filteredResults.reduce((sum, r) => sum + r.percentage, 0) / filteredResults.length)
                     : 0}
                   %
                 </p>
@@ -207,7 +260,7 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               <div className="flex-1 text-right">
                 <p className="text-sm font-medium text-muted-foreground">أعلى درجة</p>
                 <p className="text-2xl font-bold">
-                  {quizResults.length > 0 ? Math.max(...quizResults.map((r) => r.percentage)) : 0}%
+                  {filteredResults.length > 0 ? Math.max(...filteredResults.map((r) => r.percentage)) : 0}%
                 </p>
               </div>
             </div>
@@ -218,8 +271,8 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
             <div className="flex flex-row-reverse items-center gap-2">
               <FileText className="h-8 w-8 text-orange-600" />
               <div className="flex-1 text-right">
-                <p className="text-sm font-medium text-muted-foreground">إجمالي الاختبارات</p>
-                <p className="text-2xl font-bold">{quizResults.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">إجمالي النتائج</p>
+                <p className="text-2xl font-bold">{filteredResults.length}</p>
               </div>
             </div>
           </CardContent>
@@ -237,7 +290,7 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground start-3" />
                 <Input
-                  placeholder="البحث بالطالب أو الاختبار..."
+                  placeholder="البحث بالطالب أو الاختبار أو الواجب..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="min-h-11 ps-10"
@@ -261,16 +314,32 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="block text-right text-sm font-medium">الاختبار</label>
+              <label className="block text-right text-sm font-medium">
+                {kindFilter === "HOMEWORK" ? "الواجب" : kindFilter === "QUIZ" ? "الاختبار" : "الاختبار أو الواجب"}
+              </label>
               <Select value={selectedQuiz} onValueChange={setSelectedQuiz}>
                 <SelectTrigger className="min-h-11">
-                  <SelectValue placeholder="جميع الاختبارات" />
+                  <SelectValue
+                    placeholder={
+                      kindFilter === "HOMEWORK"
+                        ? "جميع الواجبات"
+                        : kindFilter === "QUIZ"
+                          ? "جميع الاختبارات"
+                          : "الكل"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع الاختبارات</SelectItem>
-                  {quizzes.map((quiz) => (
+                  <SelectItem value="all">
+                    {kindFilter === "HOMEWORK"
+                      ? "جميع الواجبات"
+                      : kindFilter === "QUIZ"
+                        ? "جميع الاختبارات"
+                        : "جميع الاختبارات والواجبات"}
+                  </SelectItem>
+                  {quizzesForSelect.map((quiz) => (
                     <SelectItem key={quiz.id} value={quiz.id}>
-                      {quiz.title}
+                      {quiz.title} ({quizTagLabel(quiz.kind)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -282,14 +351,15 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-right">نتائج الاختبارات</CardTitle>
+          <CardTitle className="text-right">نتائج الاختبارات والواجبات</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">الطالب</TableHead>
-                <TableHead className="text-right">الاختبار</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">العنوان</TableHead>
                 <TableHead className="text-right">الكورس</TableHead>
                 <TableHead className="text-right">الدرجة</TableHead>
                 <TableHead className="text-right">النسبة المئوية</TableHead>
@@ -298,14 +368,27 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredResults.map((result) => {
+              {filteredResults.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    لا توجد نتائج مطابقة للفلاتر الحالية.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredResults.map((result) => {
                 const gradeBadge = getGradeBadge(result.percentage);
                 return (
                   <TableRow key={result.id}>
                     <TableCell label="الطالب" className="font-medium">
                       {result.user.fullName}
                     </TableCell>
-                    <TableCell label="الاختبار">{result.quiz.title}</TableCell>
+                    <TableCell label="النوع">
+                      <Badge variant="secondary">{quizTagLabel(result.quiz.kind)}</Badge>
+                    </TableCell>
+                    <TableCell label="العنوان">{result.quiz.title}</TableCell>
                     <TableCell label="الكورس">
                       <Badge variant="outline">{result.quiz.course.title}</Badge>
                     </TableCell>
@@ -333,7 +416,8 @@ export function TeacherGradesPanel({ embedded = false }: { embedded?: boolean })
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              })
+              )}
             </TableBody>
           </Table>
         </CardContent>

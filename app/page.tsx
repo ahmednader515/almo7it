@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/db"; // Import db client
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { formatCourseAssessmentCounts } from "@/lib/assessment-labels";
 
 // Define types based on Prisma schema
 type Course = {
@@ -37,7 +38,7 @@ type Purchase = {
 
 type CourseWithProgress = Course & {
   chapters: { id: string }[];
-  quizzes: { id: string }[];
+  quizzes: { id: string; kind: "QUIZ" | "HOMEWORK" }[];
   purchases: Purchase[];
   progress: number;
 };
@@ -381,7 +382,9 @@ export default function HomePage() {
                         <span>
                           {course.chapters?.length || 0} {course.chapters?.length === 1 ? "درس" : "دروس"}
                           {course.quizzes && course.quizzes.length > 0 && (
-                            <span className="mr-2">، {course.quizzes.length} {course.quizzes.length === 1 ? "اختبار" : "اختبارات"}</span>
+                            <span className="mr-2">
+                              ، {formatCourseAssessmentCounts(course.quizzes)}
+                            </span>
                           )}
                         </span>
                       </div>

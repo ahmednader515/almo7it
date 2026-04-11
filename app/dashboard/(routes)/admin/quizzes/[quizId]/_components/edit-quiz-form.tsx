@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, GripVertical, X, Mic, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { assessmentUi, quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ interface Quiz {
     courseId: string;
     position: number;
     isPublished: boolean;
+    kind?: AssessmentKind;
     course: {
         title: string;
     };
@@ -61,6 +64,7 @@ interface CourseItem {
     type: "chapter" | "quiz";
     position: number;
     isPublished: boolean;
+    quizKind?: AssessmentKind;
 }
 
 const cardClass =
@@ -86,6 +90,7 @@ export function EditQuizForm({
     onSaved,
 }: EditQuizFormProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const lockCourse = Boolean(fixedCourseId);
 
     const [courses, setCourses] = useState<Course[]>([]);
@@ -103,6 +108,8 @@ export function EditQuizForm({
     const [listeningQuestionId, setListeningQuestionId] = useState<string | null>(null);
     const [isPublished, setIsPublished] = useState(false);
     const [publishLoading, setPublishLoading] = useState(false);
+    const [quizKind, setQuizKind] = useState<AssessmentKind>("QUIZ");
+    const labels = assessmentUi(quizKind);
     const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
@@ -149,6 +156,7 @@ export function EditQuizForm({
                 setQuizMaxAttempts(quiz.maxAttempts || 1);
                 setSelectedCourse(quiz.courseId);
                 setIsPublished(!!quiz.isPublished);
+                setQuizKind(quiz.kind ?? "QUIZ");
 
                 const processedQuestions = quiz.questions.map((question) => {
                     if (question.type === "MULTIPLE_CHOICE" && question.options) {
@@ -168,14 +176,14 @@ export function EditQuizForm({
                 setSelectedPosition(quiz.position);
                 await fetchCourseItems(quiz.courseId);
             } else {
-                toast.error("حدث خطأ أثناء تحميل الاختبار");
+                toast.error(labels.loadError);
                 if (variant === "page") {
                     router.push(dashboardPath);
                 }
             }
         } catch (error) {
             console.error("Error fetching quiz:", error);
-            toast.error("حدث خطأ أثناء تحميل الاختبار");
+            toast.error(labels.loadError);
             if (variant === "page") {
                 router.push(dashboardPath);
             }
@@ -211,6 +219,7 @@ export function EditQuizForm({
                     type: "quiz" as const,
                     position: q.position,
                     isPublished: q.isPublished,
+                    quizKind: q.kind ?? "QUIZ",
                 })),
             ];
 
@@ -407,7 +416,7 @@ export function EditQuizForm({
             });
 
             if (response.ok) {
-                toast.success("تم تحديث الاختبار بنجاح");
+                toast.success(labels.updateSuccess);
                 onSaved?.();
                 router.refresh();
                 if (variant === "page") {
@@ -415,11 +424,11 @@ export function EditQuizForm({
                 }
             } else {
                 const error = await response.json();
-                toast.error(error.message || "حدث خطأ أثناء تحديث الاختبار");
+                toast.error(error.message || labels.updateError);
             }
         } catch (error) {
             console.error("Error updating quiz:", error);
-            toast.error("حدث خطأ أثناء تحديث الاختبار");
+            toast.error(labels.updateError);
         } finally {
             setIsUpdatingQuiz(false);
         }
@@ -432,7 +441,7 @@ export function EditQuizForm({
                 isPublished: !isPublished,
             });
             setIsPublished(!isPublished);
-            toast.success(isPublished ? "تم إلغاء نشر الاختبار" : "تم نشر الاختبار");
+            toast.success(isPublished ? labels.publishOff : labels.publishOn);
             onSaved?.();
             router.refresh();
         } catch {
@@ -499,15 +508,15 @@ export function EditQuizForm({
                 });
 
                 if (response.ok) {
-                    toast.success("تم ترتيب الاختبار بنجاح");
+                    toast.success(labels.reorderSuccess);
                     onSaved?.();
                     router.refresh();
                 } else {
-                    toast.error("حدث خطأ أثناء ترتيب الاختبار");
+                    toast.error(labels.reorderError);
                 }
             } catch (error) {
                 console.error("Error reordering quiz:", error);
-                toast.error("حدث خطأ أثناء ترتيب الاختبار");
+                toast.error(labels.reorderError);
             }
         }
     };
@@ -520,22 +529,26 @@ export function EditQuizForm({
         );
     }
 
+    const backToListLabel = pathname.includes("admin-assistant")
+        ? "العودة إلى الاختبارات والتقدم"
+        : "العودة إلى الاختبارات";
+
     return (
         <div className={cn(variant === "page" ? "space-y-6 p-6" : "space-y-5")}>
             {variant === "page" && (
                 <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">تعديل الاختبار</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">{labels.editPageTitle}</h1>
                     <Button variant="outline" className="min-h-10" onClick={() => router.push(dashboardPath)}>
-                        العودة إلى الاختبارات
+                        {backToListLabel}
                     </Button>
                 </div>
             )}
 
             <div className={cn(cardClass, "space-y-4")}>
                 <div>
-                    <h3 className="text-base font-semibold">بيانات الاختبار</h3>
+                    <h3 className="text-base font-semibold">{labels.dataSectionTitle}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        العنوان والكورس المرتبط بهذا الاختبار.
+                        {labels.dataSectionDesc}
                     </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -569,16 +582,16 @@ export function EditQuizForm({
                         <div className="space-y-2 md:col-span-2">
                             <Label className="text-base font-medium">الكورس</Label>
                             <p className="text-sm text-muted-foreground leading-relaxed">
-                                مرتبط بهذا الكورس — لتغيير الكورس استخدم صفحة الاختبارات العامة.
+                                {labels.fixedCourseHint}
                             </p>
                         </div>
                     )}
                     <div className="space-y-2">
-                        <Label className="text-base font-medium">عنوان الاختبار</Label>
+                        <Label className="text-base font-medium">{labels.titleField}</Label>
                         <Input
                             value={quizTitle}
                             onChange={(e) => setQuizTitle(e.target.value)}
-                            placeholder="أدخل عنوان الاختبار"
+                            placeholder={labels.titlePlaceholder}
                             className="min-h-12 text-base"
                         />
                     </div>
@@ -588,9 +601,9 @@ export function EditQuizForm({
             {selectedCourse && (
                 <div className={cn(cardClass, "space-y-3")}>
                     <div>
-                        <h3 className="text-base font-semibold">ترتيب الاختبار في الكورس</h3>
+                        <h3 className="text-base font-semibold">{labels.orderCardTitle}</h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            اسحب الاختبار إلى الموقع المطلوب بين الدروس والاختبارات الموجودة.
+                            {labels.orderSectionDescEdit}
                         </p>
                         <p className="text-sm font-medium text-brand">الموقع المحدد: {selectedPosition}</p>
                     </div>
@@ -651,7 +664,9 @@ export function EditQuizForm({
                                                                         item.id === quizId && "text-brand/80"
                                                                     )}
                                                                 >
-                                                                    {item.type === "chapter" ? "درس" : "اختبار"}
+                                                                    {item.type === "chapter"
+                                                                        ? "درس"
+                                                                        : quizTagLabel(item.quizKind)}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -682,13 +697,13 @@ export function EditQuizForm({
                     ) : (
                         <div className="py-8 text-center">
                             <p className="mb-4 text-muted-foreground">
-                                لا توجد دروس أو اختبارات في هذه الكورس. سيتم إضافة الاختبار في الموقع الأول.
+                                {labels.emptyCourseHint}
                             </p>
                             <div className="rounded-lg border-2 border-dashed border-brand/30 bg-brand/5 p-3">
                                 <div className="flex items-center justify-center gap-3">
                                     <div>
-                                        <div className="font-medium">{quizTitle || "اختبار جديد"}</div>
-                                        <div className="text-sm text-brand/80">اختبار</div>
+                                        <div className="font-medium">{quizTitle || labels.newDefaultTitle}</div>
+                                        <div className="text-sm text-brand/80">{labels.tag}</div>
                                     </div>
                                     <Badge variant="outline" className="border-brand/40 text-brand">
                                         قيد التعديل
@@ -701,14 +716,14 @@ export function EditQuizForm({
             )}
 
             <div className={cn(cardClass, "space-y-3")}>
-                <Label className="text-base font-semibold">وصف الاختبار</Label>
+                <Label className="text-base font-semibold">{labels.descriptionField}</Label>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    يظهر للطلاب قبل أو أثناء الاختبار حسب واجهة العرض.
+                    {labels.descriptionHelpEdit}
                 </p>
                 <Textarea
                     value={quizDescription}
                     onChange={(e) => setQuizDescription(e.target.value)}
-                    placeholder="أدخل وصف الاختبار"
+                    placeholder={labels.descriptionPlaceholder}
                     rows={3}
                     className="min-h-[100px] text-base"
                 />
@@ -716,7 +731,7 @@ export function EditQuizForm({
 
             <div className={cn(cardClass, "grid grid-cols-1 gap-4 md:grid-cols-2")}>
                 <div className="space-y-2">
-                    <Label className="text-base font-medium">مدة الاختبار (بالدقائق)</Label>
+                    <Label className="text-base font-medium">{labels.timerField}</Label>
                     <Input
                         type="number"
                         value={quizTimer || ""}
@@ -726,7 +741,7 @@ export function EditQuizForm({
                         className="min-h-12"
                     />
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        اترك الحقل فارغاً إذا كنت لا تريد تحديد مدة للاختبار.
+                        {labels.timerHintEdit}
                     </p>
                 </div>
                 <div className="space-y-2">
@@ -740,7 +755,7 @@ export function EditQuizForm({
                         className="min-h-12"
                     />
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        عدد المرات التي يمكن للطالب إعادة الاختبار.
+                        {labels.attemptsHint}
                     </p>
                 </div>
             </div>
@@ -960,12 +975,10 @@ export function EditQuizForm({
             <div className={cn(cardClass, "space-y-4")}>
                 <div>
                     <h3 className="text-base font-semibold">
-                        {isPublished ? "الاختبار منشور" : "الاختبار غير منشور"}
+                        {isPublished ? labels.publishStatusOn : labels.publishStatusOff}
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                        {isPublished
-                            ? "يمكن للطلاب رؤية هذا الاختبار. يمكنك إلغاء النشر لإخفائه مؤقتاً."
-                            : "لن يكون الاختبار مرئياً للطلاب حتى يتم نشره."}
+                        {isPublished ? labels.publishHelpOn : labels.publishHelpOff}
                     </p>
                 </div>
                 <Button
@@ -986,7 +999,7 @@ export function EditQuizForm({
                     ) : (
                         <>
                             <Eye className="h-5 w-5 ml-2 shrink-0" />
-                            نشر الاختبار
+                            {labels.publishButton}
                         </>
                     )}
                 </Button>
@@ -1012,7 +1025,7 @@ export function EditQuizForm({
                     onClick={handleUpdateQuiz}
                     disabled={isUpdatingQuiz || questions.length === 0}
                 >
-                    {isUpdatingQuiz ? "جاري التحديث..." : "تحديث الاختبار"}
+                    {isUpdatingQuiz ? "جاري التحديث..." : labels.updateButton}
                 </Button>
             </div>
         </div>

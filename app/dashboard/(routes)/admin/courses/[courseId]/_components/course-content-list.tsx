@@ -5,6 +5,8 @@ import { Grip, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
+import { quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface CourseItem {
     id: string;
@@ -13,6 +15,7 @@ interface CourseItem {
     isPublished: boolean;
     type: "chapter" | "quiz";
     isFree?: boolean; // Only for chapters
+    quizKind?: AssessmentKind;
 }
 
 interface CourseContentListProps {
@@ -23,11 +26,16 @@ interface CourseContentListProps {
     onQuizResults?: (quizId: string) => void;
 }
 
-const getActionLabel = (type: "chapter" | "quiz", isPublished: boolean) => {
+const getActionLabel = (
+    type: "chapter" | "quiz",
+    isPublished: boolean,
+    quizKind?: AssessmentKind
+) => {
     if (type === "chapter") {
         return isPublished ? "تعديل فيديو" : "اضافة فيديو";
     }
-    return isPublished ? "تعديل اختبار" : "اضافة اختبار";
+    const tag = quizTagLabel(quizKind);
+    return isPublished ? `تعديل ${tag}` : `اضافة ${tag}`;
 };
 
 export const CourseContentList = ({
@@ -91,7 +99,9 @@ export const CourseContentList = ({
                                                         {item.title}
                                                     </span>
                                                     <Badge variant="outline" className="text-xs shrink-0">
-                                                        {item.type === "chapter" ? "درس" : "اختبار"}
+                                                        {item.type === "chapter"
+                                                            ? "درس"
+                                                            : quizTagLabel(item.quizKind)}
                                                     </Badge>
                                                 </div>
                                             </div>
@@ -113,14 +123,14 @@ export const CourseContentList = ({
                                                 onClick={() => onEdit(item.id, item.type)}
                                                 className="min-h-10 rounded-md bg-brand/10 px-3 text-sm font-semibold text-brand transition hover:bg-brand/15 active:bg-brand/20 sm:min-h-9"
                                             >
-                                                {getActionLabel(item.type, item.isPublished)}
+                                                {getActionLabel(item.type, item.isPublished, item.quizKind)}
                                             </button>
                                             {item.type === "quiz" && onQuizResults && (
                                                 <button
                                                     type="button"
                                                     onClick={() => onQuizResults(item.id)}
                                                     className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium text-muted-foreground transition hover:border-brand/30 hover:text-brand sm:min-h-9"
-                                                    title="نتائج الاختبار"
+                                                    title={`نتائج ${quizTagLabel(item.quizKind)}`}
                                                 >
                                                     <BarChart2 className="h-4 w-4 shrink-0" />
                                                     النتائج

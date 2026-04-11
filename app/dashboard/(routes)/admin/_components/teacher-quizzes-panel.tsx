@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Plus, Edit, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigationRouter } from "@/lib/hooks/use-navigation-router";
+import { assessmentUi, quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Quiz {
   id: string;
@@ -17,6 +19,7 @@ interface Quiz {
   courseId: string;
   position: number;
   isPublished: boolean;
+  kind?: AssessmentKind;
   course: {
     title: string;
   };
@@ -61,7 +64,7 @@ export function TeacherQuizzesPanel({ embedded = false }: { embedded?: boolean }
   };
 
   const handleDeleteQuiz = async (quiz: Quiz) => {
-    if (!confirm("هل أنت متأكد من حذف هذا الاختبار؟")) {
+    if (!confirm(assessmentUi(quiz.kind ?? "QUIZ").deleteConfirm)) {
       return;
     }
 
@@ -72,14 +75,14 @@ export function TeacherQuizzesPanel({ embedded = false }: { embedded?: boolean }
       });
 
       if (response.ok) {
-        toast.success("تم حذف الاختبار بنجاح");
+        toast.success(assessmentUi(quiz.kind ?? "QUIZ").deleteSuccess);
         fetchQuizzes();
       } else {
-        toast.error("حدث خطأ أثناء حذف الاختبار");
+        toast.error(assessmentUi(quiz.kind ?? "QUIZ").deleteError);
       }
     } catch (error) {
       console.error("Error deleting quiz:", error);
-      toast.error("حدث خطأ أثناء حذف الاختبار");
+      toast.error(assessmentUi(quiz.kind ?? "QUIZ").deleteError);
     } finally {
       setIsDeleting(null);
     }
@@ -110,15 +113,26 @@ export function TeacherQuizzesPanel({ embedded = false }: { embedded?: boolean }
   return (
     <div className={wrapClass} dir="rtl">
       {!embedded && (
-        <div className="flex items-center justify-between">
-          <h1 className="text-right text-3xl font-bold text-gray-900 dark:text-white">إدارة الاختبارات</h1>
-          <Button
-            onClick={() => router.push("/dashboard/admin/quizzes/create")}
-            className="bg-brand hover:bg-brand/90 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            إنشاء اختبار جديد
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-right text-3xl font-bold text-gray-900 dark:text-white">
+            إدارة الاختبارات والواجبات
+          </h1>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard/admin/quizzes/create?kind=HOMEWORK")}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              إنشاء واجب
+            </Button>
+            <Button
+              onClick={() => router.push("/dashboard/admin/quizzes/create")}
+              className="bg-brand hover:bg-brand/90 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              إنشاء اختبار جديد
+            </Button>
+          </div>
         </div>
       )}
 
@@ -165,6 +179,7 @@ export function TeacherQuizzesPanel({ embedded = false }: { embedded?: boolean }
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">عنوان الاختبار</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
                 <TableHead className="text-right">الكورس</TableHead>
                 <TableHead className="text-right">الموقع</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
@@ -178,6 +193,9 @@ export function TeacherQuizzesPanel({ embedded = false }: { embedded?: boolean }
                 <TableRow key={quiz.id}>
                   <TableCell label="عنوان الاختبار" className="font-medium">
                     {quiz.title}
+                  </TableCell>
+                  <TableCell label="النوع">
+                    <Badge variant="outline">{quizTagLabel(quiz.kind)}</Badge>
                   </TableCell>
                   <TableCell label="الكورس">
                     <Badge variant="outline">{quiz.course.title}</Badge>

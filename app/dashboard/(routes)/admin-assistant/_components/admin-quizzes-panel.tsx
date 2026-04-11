@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigationRouter } from "@/lib/hooks/use-navigation-router";
+import { quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Quiz {
   id: string;
@@ -17,6 +19,7 @@ interface Quiz {
   courseId: string;
   position: number;
   isPublished: boolean;
+  kind?: AssessmentKind;
   course: { id: string; title: string };
   questions: { id: string }[];
   createdAt: string;
@@ -125,12 +128,21 @@ export function AdminQuizzesPanel({ embedded = false }: { embedded?: boolean }) 
   return (
     <div className={embedded ? "space-y-4" : "p-6 space-y-6"} dir="rtl">
       {!embedded && (
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">كل الاختبارات</h1>
-          <Button onClick={() => router.push("/dashboard/admin-assistant/quizzes/create")} className="bg-brand hover:bg-brand/90 text-white">
-            <Plus className="h-4 w-4" />
-            إنشاء اختبار
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold">كل الاختبارات والواجبات</h1>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard/admin-assistant/quizzes/create?kind=HOMEWORK")}
+            >
+              <Plus className="h-4 w-4" />
+              إنشاء واجب
+            </Button>
+            <Button onClick={() => router.push("/dashboard/admin-assistant/quizzes/create")} className="bg-brand hover:bg-brand/90 text-white">
+              <Plus className="h-4 w-4" />
+              إنشاء اختبار
+            </Button>
+          </div>
         </div>
       )}
 
@@ -177,6 +189,7 @@ export function AdminQuizzesPanel({ embedded = false }: { embedded?: boolean }) 
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right">عنوان الاختبار</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
                 <TableHead className="text-right">الكورس</TableHead>
                 <TableHead className="text-right">الموقع</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
@@ -190,6 +203,9 @@ export function AdminQuizzesPanel({ embedded = false }: { embedded?: boolean }) 
                 <TableRow key={quiz.id}>
                   <TableCell label="عنوان الاختبار" className="font-medium">
                     {quiz.title}
+                  </TableCell>
+                  <TableCell label="النوع">
+                    <Badge variant="outline">{quizTagLabel(quiz.kind)}</Badge>
                   </TableCell>
                   <TableCell label="الكورس">
                     <Badge variant="outline">{quiz.course.title}</Badge>

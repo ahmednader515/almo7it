@@ -39,6 +39,7 @@ export async function GET(req: Request) {
                 quiz: {
                     select: {
                         title: true,
+                        kind: true,
                         course: {
                             select: {
                                 id: true,

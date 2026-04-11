@@ -34,6 +34,7 @@ export async function GET(
                 quiz: {
                     select: {
                         title: true,
+                        kind: true,
                         course: {
                             select: {
                                 id: true,

@@ -152,7 +152,7 @@ export function TeacherCourseHub({
       return {
         kind: "next",
         tab: "content",
-        label: "الخطوة ٢: الدروس والاختبارات",
+        label: "الخطوة ٢: الدروس والاختبارات والواجبات",
         switchTab: true,
       };
     }
@@ -200,8 +200,8 @@ export function TeacherCourseHub({
     },
     {
       key: "content",
-      label: "الدروس والاختبارات",
-      description: "أضف دروساً واختبارات ورتّبها قبل أن يظهر الكورس للطلاب",
+      label: "الدروس والاختبارات والواجبات",
+      description: "أضف دروساً واختبارات وواجبات ورتّبها قبل أن يظهر الكورس للطلاب",
       done: contentDone,
       tab: "content",
     },
@@ -216,7 +216,7 @@ export function TeacherCourseHub({
       key: "observe",
       label: "المتابعة والمراقبة",
       description:
-        "بعد النشر: تابع المسجلين ومحاولات الاختبارات من تبويب الطلاب والإحصائيات أعلاه",
+        "بعد النشر: تابع المسجلين ومحاولات الاختبارات والواجبات من تبويب الطلاب والإحصائيات أعلاه",
       done: false,
       tab: "students",
       hintIfUnpublished: true,
@@ -284,7 +284,7 @@ export function TeacherCourseHub({
           </TabsTrigger>
           <TabsTrigger value="content" className={tabTriggerClass}>
             <BookOpen className="shrink-0" />
-            الدروس والاختبارات
+            الدروس والاختبارات والواجبات
           </TabsTrigger>
           <TabsTrigger value="students" className={tabTriggerClass}>
             <Users className="shrink-0" />
@@ -471,7 +471,7 @@ export function TeacherCourseHub({
             <CardHeader className="pb-2">
               <CardTitle>محتوى الكورس</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                أدر الدروس والاختبارات من الصندوق أدناه — التفاصيل والأزرار مُحسَّنة للجوال.
+                أدر الدروس والاختبارات والواجبات من الصندوق أدناه — التفاصيل والأزرار مُحسَّنة للجوال.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">

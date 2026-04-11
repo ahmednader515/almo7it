@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, Trash2, Eye, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Quiz {
     id: string;
@@ -16,6 +18,7 @@ interface Quiz {
     courseId: string;
     position: number;
     isPublished: boolean;
+    kind?: AssessmentKind;
     course: {
         id: string;
         title: string;
@@ -54,19 +57,19 @@ const QuizViewPage = ({ params }: { params: Promise<{ quizId: string }> }) => {
                 const data = await response.json();
                 setQuiz(data);
             } else {
-                toast.error("لم يتم العثور على الاختبار");
+                toast.error(assessmentUi("QUIZ").notFound);
                 router.push("/dashboard/admin/courses");
             }
         } catch (error) {
             console.error("Error fetching quiz:", error);
-            toast.error("حدث خطأ أثناء تحميل الاختبار");
+            toast.error(assessmentUi("QUIZ").loadError);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteQuiz = async () => {
-        if (!quiz || !confirm("هل أنت متأكد من حذف هذا الاختبار؟")) {
+        if (!quiz || !confirm(assessmentUi(quiz.kind ?? "QUIZ").deleteConfirm)) {
             return;
         }
 
@@ -76,14 +79,14 @@ const QuizViewPage = ({ params }: { params: Promise<{ quizId: string }> }) => {
             });
 
             if (response.ok) {
-                toast.success("تم حذف الاختبار بنجاح");
+                toast.success(assessmentUi(quiz.kind ?? "QUIZ").deleteSuccess);
                 router.push(`/dashboard/admin/courses/${quiz.courseId}?tab=content`);
             } else {
-                toast.error("حدث خطأ أثناء حذف الاختبار");
+                toast.error(assessmentUi(quiz.kind ?? "QUIZ").deleteError);
             }
         } catch (error) {
             console.error("Error deleting quiz:", error);
-            toast.error("حدث خطأ أثناء حذف الاختبار");
+            toast.error(assessmentUi(quiz.kind ?? "QUIZ").deleteError);
         }
     };
 
@@ -98,10 +101,12 @@ const QuizViewPage = ({ params }: { params: Promise<{ quizId: string }> }) => {
     if (!quiz) {
         return (
             <div className="p-6">
-                <div className="text-center">لم يتم العثور على الاختبار</div>
+                <div className="text-center">{assessmentUi("QUIZ").notFound}</div>
             </div>
         );
     }
+
+    const ui = assessmentUi(quiz.kind ?? "QUIZ");
 
     return (
         <div className="p-6 space-y-6">
@@ -144,7 +149,7 @@ const QuizViewPage = ({ params }: { params: Promise<{ quizId: string }> }) => {
                 <div className="md:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>تفاصيل الاختبار</CardTitle>
+                            <CardTitle>{ui.detailCardTitle}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
@@ -286,7 +291,7 @@ const QuizViewPage = ({ params }: { params: Promise<{ quizId: string }> }) => {
                                 onClick={() => router.push(`/dashboard/admin/quizzes/${quiz.id}/edit`)}
                             >
                                 <Edit className="h-4 w-4 mr-2" />
-                                تعديل الاختبار
+                                {ui.editAction}
                             </Button>
                             <Button
                                 className="w-full"

@@ -172,6 +172,11 @@ model BalanceTransaction {
     @@index([userId])
 }
 
+enum AssessmentKind {
+    QUIZ
+    HOMEWORK
+}
+
 model Quiz {
     id String @id @default(uuid())
     title String
@@ -180,6 +185,8 @@ model Quiz {
     isPublished Boolean @default(false)
     timer Int? // Timer in minutes, null means no time limit
     maxAttempts Int @default(1) // Maximum number of attempts allowed
+    /// Same behavior as a quiz; HOMEWORK is only a label for students and admins.
+    kind AssessmentKind @default(QUIZ)
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     questions Question[]

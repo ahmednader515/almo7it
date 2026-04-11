@@ -11,6 +11,9 @@ import {
 import { EditQuizForm } from "@/app/dashboard/(routes)/admin/quizzes/[quizId]/_components/edit-quiz-form";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface InlineQuizEditorProps {
   open: boolean;
@@ -26,6 +29,24 @@ export function InlineQuizEditor({
   quizId,
 }: InlineQuizEditorProps) {
   const router = useRouter();
+  const [kind, setKind] = useState<AssessmentKind>("QUIZ");
+  const labels = assessmentUi(kind);
+
+  useEffect(() => {
+    if (!quizId || !open) return;
+    let cancelled = false;
+    fetch(`/api/admin/quizzes/${quizId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.kind) {
+          setKind(data.kind);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [quizId, open]);
 
   const onSaved = () => {
     router.refresh();
@@ -43,15 +64,17 @@ export function InlineQuizEditor({
             <X className="h-5 w-5" />
             <span className="sr-only">إغلاق</span>
           </SheetClose>
-          <SheetTitle className="text-lg sm:text-xl">تعديل الاختبار</SheetTitle>
+          <SheetTitle className="text-lg sm:text-xl">{labels.sheetTitle}</SheetTitle>
           <SheetDescription className="text-sm leading-relaxed">
-            كل الأسئلة والإعدادات في هذه اللوحة — لا حاجة لصفحة أخرى. أغلق اللوحة للعودة لقائمة المحتوى.
+            {labels.sheetDescription}
           </SheetDescription>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6">
           {!quizId && (
-            <p className="text-center text-sm text-muted-foreground">لم يُحدد اختبار.</p>
+            <p className="text-center text-sm text-muted-foreground">
+              لم يُحدد {labels.tag}.
+            </p>
           )}
           {quizId && open && (
             <div className="pb-8">

@@ -5,6 +5,8 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import { CheckCircle, Circle } from "lucide-react";
 import axios from "axios";
 import { cn } from "@/lib/utils";
+import { quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Chapter {
   id: string;
@@ -32,6 +34,7 @@ interface CourseContent {
   title: string;
   position: number;
   type: 'chapter' | 'quiz';
+  kind?: AssessmentKind;
   isFree?: boolean;
   userProgress?: {
     isCompleted: boolean;
@@ -170,7 +173,9 @@ export const CourseSidebar = ({ course }: CourseSidebarProps) => {
               <span className="rtl:text-right ltr:text-left flex-grow mr-1">
                 {content.title}
                 {content.type === 'quiz' && (
-                  <span className="ml-2 text-xs text-green-600">(اختبار)</span>
+                  <span className="ml-2 text-xs text-green-600">
+                    ({quizTagLabel(content.kind)})
+                  </span>
                 )}
               </span>
               {content.type === 'chapter' && content.isFree && (

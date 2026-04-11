@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { parseQuizOptions, stringifyQuizOptions } from "@/lib/utils";
+import { AssessmentKind } from "@prisma/client";
 
 export async function GET(req: Request) {
     try {
@@ -64,7 +65,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const { userId, user } = await auth();
-        const { title, description, courseId, questions, position, timer, maxAttempts } = await req.json();
+        const { title, description, courseId, questions, position, timer, maxAttempts, kind: kindRaw } =
+            await req.json();
+        const kind: AssessmentKind =
+            kindRaw === "HOMEWORK" ? AssessmentKind.HOMEWORK : AssessmentKind.QUIZ;
 
         console.log("Received position:", position, "Type:", typeof position);
 
@@ -212,6 +216,7 @@ export async function POST(req: Request) {
             timer: timer || null,
             maxAttempts: maxAttempts || 1,
             isPublished: true,
+            kind,
         };
         
         console.log("Quiz data without questions:", JSON.stringify(quizDataWithoutQuestions, null, 2));

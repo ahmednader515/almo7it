@@ -12,6 +12,8 @@ import { InlineChapterEditor } from "./inline-chapter-editor";
 import { InlineQuizEditor } from "./inline-quiz-editor";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface CourseContentFormProps {
     initialData: Course & {
@@ -112,7 +114,8 @@ export const CourseContentForm = ({
                     onQuizSheetOpenChange(false);
                 }
                 await axios.delete(`/api/courses/${courseId}/quizzes/${id}`);
-                toast.success("تم حذف الاختبار");
+                const deleted = initialData.quizzes.find((q) => q.id === id);
+                toast.success(assessmentUi((deleted?.kind ?? "QUIZ") as AssessmentKind).deleteToast);
             }
             router.refresh();
         } catch {
@@ -164,7 +167,8 @@ export const CourseContentForm = ({
             title: quiz.title,
             position: quiz.position,
             isPublished: quiz.isPublished,
-            type: "quiz" as const
+            type: "quiz" as const,
+            quizKind: quiz.kind as AssessmentKind,
         }))
     ].sort((a, b) => a.position - b.position);
 
@@ -176,10 +180,10 @@ export const CourseContentForm = ({
                 </div>
             )}
             <div className="text-base font-semibold tracking-tight">
-                محتوى الكورس (دروس واختبارات)
+                {assessmentUi("HOMEWORK").contentSectionTitle}
             </div>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                أضف دروساً واختبارات ورتّبها بالسحب. ابدأ بإضافة درس أو اختبار من الأزرار أدناه.
+                {assessmentUi("HOMEWORK").contentSectionDesc}
             </p>
             {isCreating && (
                 <div className="mt-4 space-y-3">
@@ -223,7 +227,7 @@ export const CourseContentForm = ({
                 >
                     {!courseItems.length && (
                         <p className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 py-8 text-center text-sm italic leading-relaxed">
-                            لا يوجد محتوى بعد. استخدم الأزرار أسفل الصفحة لإضافة أول درس أو اختبار.
+                            {assessmentUi("HOMEWORK").emptyContentHint}
                         </p>
                     )}
                     {courseItems.length > 0 && (
@@ -239,7 +243,7 @@ export const CourseContentForm = ({
             )}
             {!isCreating && courseItems.length > 0 && (
                 <p className="mt-3 text-xs text-muted-foreground sm:mt-4">
-                    اسحب من المقبض ← لإعادة ترتيب الدروس والاختبارات
+                    {assessmentUi("HOMEWORK").dragHint}
                 </p>
             )}
             {!isCreating && (
@@ -255,7 +259,18 @@ export const CourseContentForm = ({
                     </Button>
                     <Button
                         type="button"
-                        className="order-2 min-h-12 w-full justify-center gap-2 bg-brand text-base font-medium hover:bg-brand/90 sm:order-2 sm:h-10 sm:min-h-10 sm:w-auto sm:text-sm"
+                        variant="outline"
+                        className="order-2 min-h-12 w-full justify-center gap-2 text-base font-medium sm:order-2 sm:h-10 sm:min-h-10 sm:w-auto sm:text-sm"
+                        onClick={() =>
+                            router.push(`/dashboard/admin/quizzes/create?courseId=${courseId}&kind=HOMEWORK`)
+                        }
+                    >
+                        <PlusCircle className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" />
+                        إضافة واجب
+                    </Button>
+                    <Button
+                        type="button"
+                        className="order-3 min-h-12 w-full justify-center gap-2 bg-brand text-base font-medium hover:bg-brand/90 sm:order-3 sm:h-10 sm:min-h-10 sm:w-auto sm:text-sm"
                         onClick={() => setIsCreating((current) => !current)}
                     >
                         <PlusCircle className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" />

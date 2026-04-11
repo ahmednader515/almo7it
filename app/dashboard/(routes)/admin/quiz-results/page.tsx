@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, ArrowLeft, Eye, Download, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { assessmentUi } from "@/lib/assessment-labels";
 
 interface QuizResult {
     id: string;
@@ -143,10 +144,12 @@ const QuizResultsContent = () => {
     if (!quizId) {
         return (
             <div className="p-6">
-                <div className="text-center">لم يتم تحديد الاختبار</div>
+                <div className="text-center">لم يتم تحديد الاختبار أو الواجب</div>
             </div>
         );
     }
+
+    const ui = assessmentUi(quizDetails?.kind ?? "QUIZ");
 
     return (
         <div className="p-6 space-y-6">
@@ -170,7 +173,7 @@ const QuizResultsContent = () => {
                         العودة إلى المحتوى
                     </Button>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                        نتائج الاختبار: {quizDetails?.title || "جاري التحميل..."}
+                        {ui.resultsListTitle}: {quizDetails?.title || "جاري التحميل..."}
                     </h1>
                 </div>
             </div>
@@ -178,12 +181,12 @@ const QuizResultsContent = () => {
             {quizDetails && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>معلومات الاختبار</CardTitle>
+                        <CardTitle>{ui.resultsInfoCard}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <h4 className="font-medium mb-1">عنوان الاختبار</h4>
+                                <h4 className="font-medium mb-1">{ui.resultsTitleLabel}</h4>
                                 <p className="text-sm text-muted-foreground">{quizDetails.title}</p>
                             </div>
                             <div>

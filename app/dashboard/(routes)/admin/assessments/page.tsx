@@ -31,11 +31,11 @@ function AdminAssessmentsContent() {
 
   return (
     <div className="space-y-4 p-4 text-right md:space-y-6 md:p-6" dir="rtl">
-      <h1 className="text-2xl font-bold md:text-3xl">الاختبارات والتقدم</h1>
+      <h1 className="text-2xl font-bold md:text-3xl">الاختبارات والواجبات والتقدم</h1>
       <Tabs value={activeTab} onValueChange={setTab} className="w-full">
         <TabsList className="ms-auto flex h-auto w-full max-w-lg flex-row-reverse gap-1">
           <TabsTrigger value="quizzes" className="min-h-12 flex-1 px-4 text-sm sm:min-h-11 sm:text-sm">
-            الاختبارات
+            الاختبارات والواجبات
           </TabsTrigger>
           <TabsTrigger value="progress" className="min-h-12 flex-1 px-4 text-sm sm:min-h-11 sm:text-sm">
             تقدم الطلاب

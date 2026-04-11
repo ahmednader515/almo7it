@@ -9,6 +9,8 @@ import { ArrowLeft, CheckCircle, XCircle, FileText, User, Calendar, Clock } from
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { parseQuizOptions } from "@/lib/utils";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface QuizResult {
     id: string;
@@ -23,6 +25,7 @@ interface QuizResult {
     };
     quiz: {
         title: string;
+        kind?: AssessmentKind;
         course: {
             id: string;
             title: string;
@@ -168,6 +171,7 @@ const QuizResultDetailPage = ({ params }: { params: Promise<{ resultId: string }
 
     const percentage = calculatePercentage(result.score, result.totalPoints);
     const grade = getGradeBadge(percentage);
+    const ui = assessmentUi(result.quiz.kind ?? "QUIZ");
 
     return (
         <div className="p-6 space-y-6">
@@ -190,7 +194,7 @@ const QuizResultDetailPage = ({ params }: { params: Promise<{ resultId: string }
                 <div className="md:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>معلومات الطالب والاختبار</CardTitle>
+                            <CardTitle>{ui.studentInfoCardTitle}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,7 +209,7 @@ const QuizResultDetailPage = ({ params }: { params: Promise<{ resultId: string }
                                 <div className="flex items-center space-x-3">
                                     <FileText className="h-5 w-5 text-muted-foreground" />
                                     <div>
-                                        <h4 className="font-medium">الاختبار</h4>
+                                        <h4 className="font-medium">{ui.studentResultHeading}</h4>
                                         <p className="text-sm text-muted-foreground">{result.quiz.title}</p>
                                         <p className="text-xs text-muted-foreground">{result.quiz.course.title}</p>
                                     </div>
@@ -402,14 +406,14 @@ const QuizResultDetailPage = ({ params }: { params: Promise<{ resultId: string }
                                 variant="outline"
                                 onClick={() => router.push(`/dashboard/admin/quiz-results?quizId=${result.quizId}`)}
                             >
-                                عرض جميع نتائج هذا الاختبار
+                                {ui.viewAllResults}
                             </Button>
                             <Button
                                 className="w-full"
                                 variant="outline"
                                 onClick={() => router.push(`/dashboard/admin/quizzes/${result.quizId}`)}
                             >
-                                عرض تفاصيل الاختبار
+                                {ui.viewDetails}
                             </Button>
                         </CardContent>
                     </Card>

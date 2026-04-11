@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2, GripVertical, X, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { usePathname, useSearchParams } from "next/navigation";
+import { assessmentUi, quizTagLabel } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 import { useNavigationRouter } from "@/lib/hooks/use-navigation-router";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { UploadDropzone } from "@/lib/uploadthing";
@@ -35,6 +37,7 @@ interface Quiz {
     courseId: string;
     position: number;
     isPublished: boolean;
+    kind?: AssessmentKind;
     course: {
         title: string;
     };
@@ -59,12 +62,19 @@ interface CourseItem {
     type: "chapter" | "quiz";
     position: number;
     isPublished: boolean;
+    quizKind?: AssessmentKind;
 }
 
 const CreateQuizContent = () => {
     const router = useNavigationRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
-    const dashboardPath = "/dashboard/admin/assessments?tab=quizzes";
+    const assessmentKind: AssessmentKind =
+        searchParams.get("kind") === "HOMEWORK" ? "HOMEWORK" : "QUIZ";
+    const labels = assessmentUi(assessmentKind);
+    const assessmentsListPath = pathname.includes("admin-assistant")
+        ? "/dashboard/admin-assistant/assessments?tab=quizzes"
+        : "/dashboard/admin/assessments?tab=quizzes";
     const adminCourseContentPath = (courseId: string) =>
         `/dashboard/admin/courses/${courseId}?tab=content`;
     const goBackAfterQuizFlow = () => {
@@ -100,7 +110,7 @@ const CreateQuizContent = () => {
             setSelectedCourse(courseIdFromUrl);
             fetchCourseItems(courseIdFromUrl);
         }
-    }, [courseIdFromUrl]);
+    }, [courseIdFromUrl, assessmentKind]);
 
     useEffect(() => {
         return () => {
@@ -151,7 +161,8 @@ const CreateQuizContent = () => {
                     title: quiz.title,
                     type: "quiz" as const,
                     position: quiz.position,
-                    isPublished: quiz.isPublished
+                    isPublished: quiz.isPublished,
+                    quizKind: quiz.kind ?? "QUIZ",
                 }))
             ];
             
@@ -163,11 +174,12 @@ const CreateQuizContent = () => {
                 ...items,
                 {
                     id: "new-quiz",
-                    title: quizTitle || "اختبار جديد",
+                    title: quizTitle || labels.newDefaultTitle,
                     type: "quiz" as const,
                     position: items.length + 1,
-                    isPublished: false
-                }
+                    isPublished: false,
+                    quizKind: assessmentKind,
+                },
             ];
             
             setCourseItems(itemsWithNewQuiz);
@@ -359,25 +371,26 @@ const CreateQuizContent = () => {
                     position: selectedPosition,
                     timer: quizTimer,
                     maxAttempts: quizMaxAttempts,
+                    kind: assessmentKind,
                 }),
             });
 
             if (response.ok) {
-                toast.success("تم إنشاء الاختبار بنجاح");
+                toast.success(labels.createSuccess);
                 // After creating a quiz, return to the course editor on "الدروس والاختبارات"
                 // (content tab). If courseId is missing, fall back to quizzes dashboard.
                 if (selectedCourse) {
                     router.push(`/dashboard/admin/courses/${selectedCourse}?tab=content`);
                 } else {
-                    router.push(dashboardPath);
+                    router.push(assessmentsListPath);
                 }
             } else {
                 const error = await response.json();
-                toast.error(error.message || "حدث خطأ أثناء إنشاء الاختبار");
+                toast.error(error.message || labels.createError);
             }
         } catch (error) {
             console.error("Error creating quiz:", error);
-            toast.error("حدث خطأ أثناء إنشاء الاختبار");
+            toast.error(labels.createError);
         } finally {
             setIsCreatingQuiz(false);
         }
@@ -429,16 +442,20 @@ const CreateQuizContent = () => {
         // The drag and drop library will handle the visual feedback, but we don't update state
     };
 
+    const backToListLabel = selectedCourse
+        ? labels.backToCourseContent
+        : pathname.includes("admin-assistant")
+          ? "العودة إلى الاختبارات والتقدم"
+          : "العودة إلى الاختبارات";
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    إنشاء اختبار جديد
+                    {labels.createPageTitle}
                 </h1>
                 <Button variant="outline" onClick={goBackAfterQuizFlow}>
-                    {selectedCourse
-                        ? "العودة إلى محتوى الكورس"
-                        : "العودة إلى الاختبارات"}
+                    {backToListLabel}
                 </Button>
             </div>
 
@@ -468,7 +485,7 @@ const CreateQuizContent = () => {
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>عنوان الاختبار</Label>
+                        <Label>{labels.titleField}</Label>
                         <Input
                             value={quizTitle}
                             onChange={(e) => {
@@ -477,12 +494,12 @@ const CreateQuizContent = () => {
                                 setCourseItems(prev => 
                                     prev.map(item => 
                                         item.id === "new-quiz" 
-                                            ? { ...item, title: e.target.value || "اختبار جديد" }
+                                            ? { ...item, title: e.target.value || labels.newDefaultTitle }
                                             : item
                                     )
                                 );
                             }}
-                            placeholder="أدخل عنوان الاختبار"
+                            placeholder={labels.titlePlaceholder}
                         />
                     </div>
                 </div>
@@ -490,9 +507,9 @@ const CreateQuizContent = () => {
                 {selectedCourse && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>ترتيب الاختبار في الكورس</CardTitle>
+                            <CardTitle>{labels.orderCardTitle}</CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                اسحب الاختبار الجديد إلى الموقع المطلوب بين الدروس والاختبارات الموجودة
+                                {labels.orderCardDesc}
                             </p>
                             <p className="text-sm text-blue-600">
                                 الموقع المحدد: {selectedPosition}
@@ -531,7 +548,9 @@ const CreateQuizContent = () => {
                                                                             {item.title}
                                                                         </div>
                                                                         <div className={`text-sm ${item.id === "new-quiz" ? "text-blue-600" : "text-muted-foreground"}`}>
-                                                                            {item.type === "chapter" ? "درس" : "اختبار"}
+                                                                            {item.type === "chapter"
+                                                                                ? "درس"
+                                                                                : quizTagLabel(item.quizKind)}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -551,15 +570,15 @@ const CreateQuizContent = () => {
                             ) : (
                                 <div className="text-center py-8">
                                     <p className="text-muted-foreground mb-4">
-                                        لا توجد دروس أو اختبارات في هذه الكورس. سيتم إضافة الاختبار في الموقع الأول.
+                                        {labels.emptyCourseHint}
                                     </p>
                                     <div className="p-3 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
                                         <div className="flex items-center justify-center space-x-3">
                                             <div>
                                                 <div className="font-medium text-blue-800">
-                                                    {quizTitle || "اختبار جديد"}
+                                                    {quizTitle || labels.newDefaultTitle}
                                                 </div>
-                                                <div className="text-sm text-blue-600">اختبار</div>
+                                                <div className="text-sm text-blue-600">{labels.tag}</div>
                                             </div>
                                             <Badge variant="outline" className="border-blue-300 text-blue-700">
                                                 جديد
@@ -573,18 +592,18 @@ const CreateQuizContent = () => {
                 )}
 
                 <div className="space-y-2">
-                    <Label>وصف الاختبار</Label>
+                    <Label>{labels.descriptionField}</Label>
                     <Textarea
                         value={quizDescription}
                         onChange={(e) => setQuizDescription(e.target.value)}
-                        placeholder="أدخل وصف الاختبار"
+                        placeholder={labels.descriptionPlaceholder}
                         rows={3}
                     />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label>مدة الاختبار (بالدقائق)</Label>
+                        <Label>{labels.timerField}</Label>
                         <Input
                             type="number"
                             value={quizTimer || ""}
@@ -593,7 +612,7 @@ const CreateQuizContent = () => {
                             min="1"
                         />
                         <p className="text-sm text-muted-foreground">
-                            اترك الحقل فارغاً إذا كنت لا تريد تحديد مدة للاختبار
+                            {labels.timerHintCreate}
                         </p>
                     </div>
                     <div className="space-y-2">
@@ -606,7 +625,7 @@ const CreateQuizContent = () => {
                             max="10"
                         />
                         <p className="text-sm text-muted-foreground">
-                            عدد المرات التي يمكن للطالب إعادة الاختبار
+                            {labels.attemptsHint}
                         </p>
                     </div>
                 </div>
@@ -816,7 +835,7 @@ const CreateQuizContent = () => {
                         onClick={handleCreateQuiz}
                         disabled={isCreatingQuiz || questions.length === 0}
                     >
-                        {isCreatingQuiz ? "جاري الحفظ..." : "إنشاء الاختبار"}
+                        {isCreatingQuiz ? labels.createSaving : labels.createSubmit}
                     </Button>
                 </div>
             </div>

@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { parseQuizOptions } from "@/lib/utils";
+import { assessmentUi } from "@/lib/assessment-labels";
+import type { AssessmentKind } from "@prisma/client";
 
 interface Question {
     id: string;
@@ -27,6 +29,7 @@ interface Quiz {
     id: string;
     title: string;
     description: string;
+    kind?: AssessmentKind;
     timer?: number; // Timer in minutes
     maxAttempts: number;
     currentAttempt?: number;
@@ -92,16 +95,19 @@ export default function QuizPage({
             } else {
                 const errorText = await response.text();
                 if (errorText.includes("Maximum attempts reached")) {
-                    toast.error("لقد استنفذت جميع المحاولات المسموحة لهذا الاختبار");
-                    // Set flag to redirect to result page when no attempts remaining
+                    const infoRes = await fetch(`/api/courses/${courseId}/quizzes/${quizId}/info`);
+                    const info = infoRes.ok ? await infoRes.json() : null;
+                    toast.error(
+                        assessmentUi((info?.kind as AssessmentKind) ?? "QUIZ").studentAttemptsExhausted
+                    );
                     setRedirectToResult(true);
                 } else {
-                    toast.error("حدث خطأ أثناء تحميل الاختبار");
+                    toast.error(assessmentUi("QUIZ").studentLoadError);
                 }
             }
         } catch (error) {
             console.error("Error fetching quiz:", error);
-            toast.error("حدث خطأ أثناء تحميل الاختبار");
+            toast.error(assessmentUi("QUIZ").studentLoadError);
         } finally {
             setLoading(false);
         }
@@ -144,16 +150,18 @@ export default function QuizPage({
             });
 
             if (response.ok) {
-                const result = await response.json();
-                toast.success("تم إرسال الاختبار بنجاح!");
+                await response.json();
+                const submitLabels = assessmentUi(quiz.kind ?? "QUIZ");
+                toast.success(submitLabels.studentSubmitSuccess);
                 router.push(`/courses/${courseId}/quizzes/${quizId}/result`);
             } else {
                 const error = await response.text();
-                toast.error(error || "حدث خطأ أثناء إرسال الاختبار");
+                const submitLabels = assessmentUi(quiz.kind ?? "QUIZ");
+                toast.error(error || submitLabels.studentSubmitError);
             }
         } catch (error) {
             console.error("Error submitting quiz:", error);
-            toast.error("حدث خطأ أثناء إرسال الاختبار");
+            toast.error(assessmentUi(quiz.kind ?? "QUIZ").studentSubmitError);
         } finally {
             setSubmitting(false);
         }
@@ -187,6 +195,8 @@ export default function QuizPage({
         }
     };
 
+    const ui = assessmentUi(quiz?.kind ?? "QUIZ");
+
     if (loading && !redirectToResult) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -210,7 +220,7 @@ export default function QuizPage({
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">الاختبار غير موجود</h1>
+                    <h1 className="text-2xl font-bold mb-4">{ui.studentNotFoundTitle}</h1>
                     <Button onClick={() => router.back()}>العودة</Button>
                 </div>
             </div>
@@ -348,7 +358,7 @@ export default function QuizPage({
                                     disabled={submitting}
                                     className="bg-primary hover:bg-primary/90"
                                 >
-                                    {submitting ? "جاري الإرسال..." : "إنهاء الاختبار"}
+                                    {submitting ? ui.studentSubmitting : ui.studentFinish}
                                 </Button>
                             ) : (
                                 <Button
@@ -369,10 +379,11 @@ export default function QuizPage({
                                 <span className="font-medium">تنبيه</span>
                             </div>
                             <p className="text-amber-700 dark:text-amber-200 mt-2">
-                                {quiz.maxAttempts > 1 
-                                    ? `تأكد من إجابة جميع الأسئلة قبل إنهاء الاختبار. يمكنك إعادة الاختبار ${quiz.maxAttempts - (quiz.currentAttempt || 1)} مرات أخرى.`
-                                    : "تأكد من إجابة جميع الأسئلة قبل إنهاء الاختبار. لا يمكنك العودة للاختبار بعد الإرسال."
-                                }
+                                {quiz.maxAttempts > 1
+                                    ? ui.confirmFinishMulti(
+                                          quiz.maxAttempts - (quiz.currentAttempt || 1)
+                                      )
+                                    : ui.confirmFinishOnce}
                             </p>
                         </CardContent>
                     </Card>

@@ -39,7 +39,8 @@ export async function GET(
                 id: true,
                 title: true,
                 maxAttempts: true,
-                timer: true
+                timer: true,
+                kind: true,
             }
         });
 

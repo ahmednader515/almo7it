@@ -65,7 +65,16 @@ export const VideoForm = ({
             router.refresh();
         } catch (error) {
             console.error("[CHAPTER_YOUTUBE]", error);
-            toast.error(error instanceof Error ? error.message : "حدث خطأ ما");
+            const msg =
+                error instanceof Error && error.message
+                    ? error.message
+                    : "حدث خطأ ما";
+            // Browser/network errors often surface as "Failed to fetch" — show a friendly message.
+            if (msg.toLowerCase().includes("failed to fetch")) {
+                toast.error("تعذر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.");
+            } else {
+                toast.error(msg);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -89,8 +98,9 @@ export const VideoForm = ({
 
             <div
                 className={cn(
-                    "relative w-full overflow-hidden rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/40",
-                    "aspect-video max-h-[240px] sm:max-h-[280px]"
+                    "relative mx-auto w-full overflow-hidden rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/40",
+                    // Prevent cropping in wide side-sheets: cap width so a 16:9 box stays within max height.
+                    "aspect-video max-w-[427px] sm:max-w-[498px]"
                 )}
             >
                 {initialData.videoUrl ? (

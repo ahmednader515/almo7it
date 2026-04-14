@@ -14,6 +14,10 @@ interface Chapter {
   title: string;
   description: string | null;
   isFree: boolean;
+  maxViews?: number;
+  viewsUsed?: number;
+  viewsRemaining?: number;
+  viewLimitReached?: boolean;
   videoUrl: string | null;
   videoType: "UPLOAD" | "YOUTUBE" | null;
   youtubeVideoId: string | null;
@@ -196,11 +200,17 @@ const ChapterPage = () => {
 
   const onEnd = async () => {
     try {
-      if (!isCompleted) {
-        await axios.put(`/api/courses/${routeParams.courseId}/chapters/${routeParams.chapterId}/progress`);
-        setIsCompleted(true);
-        router.refresh();
+      // Consume a view every time the student completes the lesson.
+      if (isCompleted) {
+        // UX: briefly remove then re-add completion tag.
+        setIsCompleted(false);
       }
+      await axios.put(
+        `/api/courses/${routeParams.courseId}/chapters/${routeParams.chapterId}/progress`,
+        { forceConsume: true }
+      );
+      setIsCompleted(true);
+      router.refresh();
     } catch (error) {
       console.error("Error marking chapter as completed:", error);
       toast.error("فشل تحديث التقدم");
@@ -258,6 +268,23 @@ const ChapterPage = () => {
     );
   }
 
+  if (chapter.viewLimitReached) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+          <h2 className="text-2xl font-semibold">تم استنفاذ عدد مرات مشاهدة الدرس</h2>
+          <p className="text-muted-foreground">
+            لقد وصلت للحد الأقصى لعدد مرات فتح هذا الدرس.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            الحد الأقصى: {chapter.maxViews ?? 5} — تم الاستخدام: {chapter.viewsUsed ?? 0}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full">
       <div className="max-w-5xl mx-auto p-6">
@@ -303,6 +330,13 @@ const ChapterPage = () => {
               </div>
             )}
           </div>
+
+          {typeof chapter.viewsRemaining === "number" && (
+            <div className="text-sm text-muted-foreground">
+              مرات المشاهدة المتبقية: <span className="font-semibold">{chapter.viewsRemaining}</span> /{" "}
+              {chapter.maxViews ?? 5}
+            </div>
+          )}
 
           {/* Chapter Information */}
           <div className="flex flex-col gap-6">

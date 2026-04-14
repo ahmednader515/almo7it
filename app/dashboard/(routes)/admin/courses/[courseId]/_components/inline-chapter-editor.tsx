@@ -22,6 +22,7 @@ type ChapterApiPayload = {
   videoUrl: string | null;
   videoType: string | null;
   youtubeVideoId: string | null;
+  maxViews: number;
   attachments: Array<{
     id: string;
     name: string;
@@ -69,6 +70,7 @@ export function InlineChapterEditor({
         videoUrl: data.videoUrl,
         videoType: data.videoType,
         youtubeVideoId: data.youtubeVideoId,
+        maxViews: typeof data.maxViews === "number" ? data.maxViews : 5,
         attachments: (data.attachments || []).map(
           (a: { id: string; name: string; url: string; position: number; createdAt: string | Date }) => ({
             ...a,
@@ -143,6 +145,7 @@ export function InlineChapterEditor({
                   videoUrl: chapter.videoUrl,
                   videoType: chapter.videoType,
                   youtubeVideoId: chapter.youtubeVideoId,
+                  maxViews: chapter.maxViews,
                 }}
                 courseId={courseId}
                 chapterId={chapterId!}

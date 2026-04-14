@@ -32,6 +32,10 @@ export async function GET(
             userId,
           }
         },
+        chapterViews: {
+          where: { userId },
+          select: { views: true, lastViewedAt: true },
+        },
         attachments: {
           orderBy: {
             position: 'asc',
@@ -43,6 +47,15 @@ export async function GET(
     if (!chapter) {
       return new NextResponse("Chapter not found", { status: 404 });
     }
+
+    // Student view limit status (counts COMPLETIONS as "views").
+    // Course owner is never limited.
+    const viewsUsed = chapter.chapterViews?.[0]?.views ?? 0;
+    const maxViews = chapter.maxViews ?? 5;
+    const isOwner = chapter.course?.userId === userId;
+
+    const viewsRemaining = Math.max(0, maxViews - viewsUsed);
+    const viewLimitReached = !isOwner && viewsUsed >= maxViews;
 
     // Get all content (chapters and quizzes) for this course
     const [chapters, quizzes] = await db.$transaction([
@@ -101,6 +114,10 @@ export async function GET(
       previousChapterId: previousContent?.id || null,
       nextContentType: nextContent?.type || null,
       previousContentType: previousContent?.type || null,
+      viewsUsed,
+      maxViews,
+      viewsRemaining,
+      viewLimitReached,
     };
 
     return NextResponse.json(response);
@@ -118,7 +135,7 @@ export async function PATCH(
     { params }: { params: Promise<{ courseId: string; chapterId: string }> }
 ) {
     try {
-        const { userId } = await auth();
+        const { userId, user } = await auth();
         const resolvedParams = await params;
         const values = await req.json();
 
@@ -126,14 +143,17 @@ export async function PATCH(
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        const courseOwner = await db.course.findUnique({
-            where: {
-                id: resolvedParams.courseId,
-                userId: userId,
-            }
+        const course = await db.course.findUnique({
+            where: { id: resolvedParams.courseId },
+            select: { userId: true },
         });
 
-        if (!courseOwner) {
+        const canEdit =
+            user?.role === "ADMIN" ||
+            user?.role === "ADMIN_ASSISTANT" ||
+            course?.userId === userId;
+
+        if (!canEdit) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 

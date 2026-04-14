@@ -44,6 +44,7 @@ interface ChapterFormProps {
         description: string | null;
         isFree: boolean;
         isPublished: boolean;
+        maxViews: number;
         attachments: ChapterAttachment[];
         videoUrl: string | null;
         videoType: string | null;
@@ -64,6 +65,10 @@ const descriptionSchema = z.object({
 
 const accessSchema = z.object({
     isFree: z.boolean().default(false),
+});
+
+const viewsSchema = z.object({
+    maxViews: z.coerce.number().int().min(1, { message: "الحد الأدنى 1" }).max(100, { message: "الحد الأقصى 100" }),
 });
 
 export const ChapterForm = ({
@@ -96,6 +101,11 @@ export const ChapterForm = ({
         defaultValues: { isFree: !!initialData.isFree },
     });
 
+    const viewsForm = useForm<z.infer<typeof viewsSchema>>({
+        resolver: zodResolver(viewsSchema),
+        defaultValues: { maxViews: Number(initialData.maxViews ?? 5) },
+    });
+
     useEffect(() => {
         titleForm.reset({ title: initialData?.title || "" });
     }, [initialData?.title, titleForm.reset]);
@@ -108,10 +118,15 @@ export const ChapterForm = ({
         accessForm.reset({ isFree: !!initialData.isFree });
     }, [initialData?.isFree, accessForm.reset]);
 
+    useEffect(() => {
+        viewsForm.reset({ maxViews: Number(initialData?.maxViews ?? 5) });
+    }, [initialData?.maxViews, viewsForm.reset]);
+
     const { isSubmitting: isSubmittingTitle, isValid: isValidTitle } = titleForm.formState;
     const { isSubmitting: isSubmittingDescription, isValid: isValidDescription } =
         descriptionForm.formState;
     const { isSubmitting: isSubmittingAccess, isValid: isValidAccess } = accessForm.formState;
+    const { isSubmitting: isSubmittingViews, isValid: isValidViews } = viewsForm.formState;
 
     const onSubmitTitle = async (values: z.infer<typeof titleSchema>) => {
         try {
@@ -160,6 +175,23 @@ export const ChapterForm = ({
             router.refresh();
         } catch (error) {
             console.error("[CHAPTER_ACCESS]", error);
+            toast.error("حدث خطأ");
+        }
+    };
+
+    const onSubmitViews = async (values: z.infer<typeof viewsSchema>) => {
+        try {
+            const res = await fetch(`/api/courses/${courseId}/chapters/${chapterId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
+            });
+            if (!res.ok) throw new Error("views");
+            toast.success("تم حفظ عدد مرات المشاهدة");
+            onSaved?.();
+            router.refresh();
+        } catch (error) {
+            console.error("[CHAPTER_VIEWS]", error);
             toast.error("حدث خطأ");
         }
     };
@@ -295,6 +327,44 @@ export const ChapterForm = ({
                             className="w-full min-h-11 bg-brand hover:bg-brand/90 sm:w-auto sm:min-h-10"
                         >
                             {isSubmittingAccess ? "جاري الحفظ..." : "حفظ إعدادات المعاينة"}
+                        </Button>
+                    </form>
+                </Form>
+            </div>
+
+            <div className={cardClass}>
+                <Form {...viewsForm}>
+                    <form onSubmit={viewsForm.handleSubmit(onSubmitViews)} className="space-y-3">
+                        <FormField
+                            control={viewsForm.control}
+                            name="maxViews"
+                            render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                    <FormLabel className="text-base font-semibold">عدد مرات مشاهدة الدرس</FormLabel>
+                                    <FormDescription className="text-sm leading-relaxed">
+                                        عدد المرات المسموح بها للطالب لفتح هذا الدرس. الافتراضي 5.
+                                    </FormDescription>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={100}
+                                            step={1}
+                                            disabled={isSubmittingViews}
+                                            className="min-h-12 text-base md:min-h-11"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={!isValidViews || isSubmittingViews}
+                            className="mt-2 w-full min-h-11 bg-brand hover:bg-brand/90 sm:w-auto sm:min-h-10"
+                        >
+                            {isSubmittingViews ? "جاري الحفظ..." : "حفظ عدد المشاهدات"}
                         </Button>
                     </form>
                 </Form>
